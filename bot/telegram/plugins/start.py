@@ -28,6 +28,9 @@ async def start(bot: Client, message: Message):
             await message.reply_cached_media(file_id=media.file_id, caption=f'**{media.file_name}**')
         except Exception as e:
             print(f"An error occurred: {e}")
+    else: 
+        st = "Bot alive" 
+        mg = await message.reply(text=st)
 
 
 @StreamBot.on_message(filters.command('index'))
