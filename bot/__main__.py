@@ -1,6 +1,6 @@
-from asyncio import get_event_loop, sleep as asleep, gather
+from asyncio import sleep as asleep, gather
 from traceback import format_exc
-
+import asyncio
 from aiohttp import web
 from pyrogram import idle
 
@@ -10,7 +10,6 @@ from bot.server import web_server
 from bot.telegram import StreamBot, UserBot
 from bot.telegram.clients import initialize_clients
 
-loop = get_event_loop()
 
 async def start_services():
     LOGGER.info(f'Initializing Surf-TG v-{__version__}')
@@ -51,7 +50,7 @@ async def stop_clients():
 
 if __name__ == '__main__':
     try:
-        loop.run_until_complete(start_services())
+        asyncio.run(start_services())
     except KeyboardInterrupt:
         LOGGER.info('Service Stopping...')
     except Exception:
