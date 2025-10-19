@@ -1,72 +1,69 @@
 import asyncio
+import uvloop  # If you're explicitly using uvloop
+
+# Install uvloop as the event loop implementation (optional, only if you want uvloop)
+uvloop.install()
+
+# Create and set the event loop early
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+# Now import pyrogram and other modules
+from asyncio import sleep as asleep, gather
 from traceback import format_exc
 from aiohttp import web
-
+from pyrogram import idle
 from bot import __version__, LOGGER
 from bot.config import Telegram
 from bot.server import web_server
 from bot.telegram import StreamBot, UserBot
 from bot.telegram.clients import initialize_clients
 
-
+# Rest of your code remains the same
 async def start_services():
-    LOGGER.info(f"Initializing Surf-TG v-{__version__}")
-    await asyncio.sleep(1.2)
-
-    # Start main bot
+    LOGGER.info(f'Initializing Surf-TG v-{__version__}')
+    await asleep(1.2)
+    
     await StreamBot.start()
     StreamBot.username = StreamBot.me.username
     LOGGER.info(f"Bot Client : [@{StreamBot.username}]")
-
-    # Start userbot if session exists
-    if Telegram.SESSION_STRING:
+    if len(Telegram.SESSION_STRING) != 0:
         await UserBot.start()
-        UserBot.username = (
-            UserBot.me.username or UserBot.me.first_name or UserBot.me.id
-        )
+        UserBot.username = UserBot.me.username or UserBot.me.first_name or UserBot.me.id
         LOGGER.info(f"User Client : {UserBot.username}")
-
-    # Initialize additional clients
+    
+    await asleep(1.2)
     LOGGER.info("Initializing Multi Clients")
     await initialize_clients()
+    
+    await asleep(2)
+    LOGGER.info('Initalizing Surf Web Server..')
+    server = web.AppRunner(await web_server())
+    LOGGER.info("Server CleanUp!")
+    await server.cleanup()
+    
+    await asleep(2)
+    LOGGER.info("Server Setup Started !")
+    
+    await server.setup()
+    await web.TCPSite(server, '0.0.0.0', Telegram.PORT).start()
 
-    # Setup web server
-    LOGGER.info("Initializing Surf Web Server..")
-    runner = web.AppRunner(await web_server())
-    await runner.setup()
-    await web.TCPSite(runner, "0.0.0.0", Telegram.PORT).start()
-    LOGGER.info(f"Web server running on port {Telegram.PORT}")
-
-    # Keep running forever (replaces idle())
-    LOGGER.info("Surf-TG Started Revolving!")
-    await asyncio.Event().wait()
-
+    LOGGER.info("Surf-TG Started Revolving !")
+    await idle()
 
 async def stop_clients():
-    try:
-        await StreamBot.stop()
-    except Exception:
-        pass
-    if Telegram.SESSION_STRING:
-        try:
-            await UserBot.stop()
-        except Exception:
-            pass
+    await StreamBot.stop()
+    if len(Telegram.SESSION_STRING) != 0:
+        await UserBot.stop()
 
-
-def main():
+if __name__ == '__main__':
     try:
-        asyncio.run(start_services())
+        loop.run_until_complete(start_services())
     except KeyboardInterrupt:
-        LOGGER.info("Service Stopping...")
+        LOGGER.info('Service Stopping...')
     except Exception:
         LOGGER.error(format_exc())
     finally:
-        try:
-            asyncio.run(stop_clients())
-        except Exception:
-            pass
-
-
-if __name__ == "__main__":
-    main()
+        loop.run_until_complete(stop_clients())
+        loop.stop()
+        loop.close()  # Close the loop explicitly
