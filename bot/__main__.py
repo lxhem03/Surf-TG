@@ -56,5 +56,4 @@ if __name__ == '__main__':
     except Exception:
         LOGGER.error(format_exc())
     finally:
-        loop.run_until_complete(stop_clients())
-        loop.stop()
+        asyncio.run(stop_clients())
